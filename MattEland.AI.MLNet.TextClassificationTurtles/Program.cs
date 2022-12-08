@@ -1,8 +1,8 @@
 ﻿using Microsoft.ML;
 using Microsoft.ML.Data;
 using Microsoft.ML.TorchSharp;
-using Microsoft.ML.TorchSharp.NasBert;
-using Microsoft.ML.Transforms;
+//using Microsoft.ML.TorchSharp.NasBert;
+//using Microsoft.ML.Transforms;
 
 // Source articles / code:
 // - https://devblogs.microsoft.com/dotnet/announcing-ml-net-2-0/#sentence-similarity-api
@@ -18,51 +18,44 @@ MLContext mlContext = new()
     FallbackToCpu = true
 };
 
-// Load your data
-Console.WriteLine("Loading Data...");
-IEnumerable<TrainingRow> phrases = new[]
+// (Optional) Use GPU
+//mlContext.GpuDeviceId = 0;
+//mlContext.FallbackToCpu = false;
+
+var phrases = new[]
 {
-    new TrainingRow {Utterance="Tonight I dine on turtle soup!", Intent=(uint) TurtleIntents.EatTurtles},
-    new TrainingRow {Utterance="I like turtles!", Intent=(uint)TurtleIntents.TurtlesAreGood},
-    new TrainingRow {Utterance="Eat and get out!", Intent=(uint)TurtleIntents.Unknown}
+    new {col0="Tonight I dine on turtle soup!", col1=(float)PossibleOptions.EatTurtle },
+    new {col0="I like turtles!", col1=(float)PossibleOptions.LikeTurtle },
 };
 
 IDataView dataView = mlContext.Data.LoadFromEnumerable(phrases);
 
-// Define your training pipeline
-Console.WriteLine("Creating Pipeline...");
-var pipeline = mlContext.MulticlassClassification.Trainers.TextClassification(
-    labelColumnName: @"Intent",
-    sentence1ColumnName: @"Utterance");
+// Data process configuration with pipeline data transformations
+var pipeline = mlContext.Transforms.Conversion.MapValueToKey(outputColumnName: @"col1", inputColumnName: @"col1")
+                        .Append(mlContext.MulticlassClassification.Trainers.TextClassification(labelColumnName: @"col1", sentence1ColumnName: @"col0"))
+                        .Append(mlContext.Transforms.Conversion.MapKeyToValue(outputColumnName: @"PredictedLabel", inputColumnName: @"PredictedLabel"));
 
-// Train the model
-Console.WriteLine("Fitting Model...");
-var model = pipeline.Fit(dataView);
+var mlModel = pipeline.Fit(dataView);
 
-Console.WriteLine("Creating prediction engine");
-PredictionEngine<ModelInput, ModelOutput> predictionEngine =
-    mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(model);
+PredictionEngine<ModelInput, ModelOutput> engine = mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(mlModel);
 
-Console.WriteLine("Generating prediction");
-ModelOutput output = predictionEngine.Predict(new ModelInput { Col0 = "Hello World!" });
 
-Console.WriteLine("Predicted intent: " + output.PredictedLabel);
+ModelInput sampleData = new(@"Turtles taste good!");
+ModelOutput result = engine.Predict(sampleData);
 
-Console.ReadLine();
+// Print sentiment
+Console.WriteLine($"Intent: {(PossibleOptions)result.PredictedLabel} with class labels of {string.Join(", ", result.Score.Select(s => s.ToString("0.00")))}");
 
-public class TrainingRow
-{
-    [LoadColumn(0)]
-    [ColumnName(@"Utterance")]
-    public string Utterance { get; set; }
-
-    [LoadColumn(1)]
-    [ColumnName(@"Intent")]
-    public uint Intent { get; set; }
-}
-
+/// <summary>
+/// model input class for ReviewSentiment.
+/// </summary>
 public class ModelInput
 {
+    public ModelInput(string col0)
+    {
+        Col0 = col0;
+    }
+
     [LoadColumn(0)]
     [ColumnName(@"col0")]
     public string Col0 { get; set; }
@@ -73,6 +66,9 @@ public class ModelInput
 
 }
 
+/// <summary>
+/// model output class for ReviewSentiment.
+/// </summary>
 public class ModelOutput
 {
     [ColumnName(@"col0")]
@@ -89,9 +85,8 @@ public class ModelOutput
 
 }
 
-public enum TurtleIntents
+public enum PossibleOptions
 {
-    EatTurtles,
-    TurtlesAreGood,
-    Unknown
+    EatTurtle,
+    LikeTurtle
 }

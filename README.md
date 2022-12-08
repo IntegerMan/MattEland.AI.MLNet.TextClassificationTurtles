@@ -1,5 +1,5 @@
 # TextClassification API with ML.NET 2.0 Samples
-By Matt Eland.
+By [Matt Eland](https://MattEland.dev).
 
 ## Source Articles / Code
 

@@ -13,4 +13,10 @@
     <PackageReference Include="TorchSharp-cuda-windows" Version="0.99.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Turtles.tsv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

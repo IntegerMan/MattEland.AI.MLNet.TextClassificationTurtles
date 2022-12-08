@@ -18,33 +18,42 @@ MLContext mlContext = new()
     FallbackToCpu = true
 };
 
-// (Optional) Use GPU
-//mlContext.GpuDeviceId = 0;
-//mlContext.FallbackToCpu = false;
+// Load the data source
+IDataView dataView = mlContext.Data.LoadFromTextFile<ModelInput>(
+    "Turtles.tsv",
+    separatorChar: '\t',
+    hasHeader: false
+);
 
-var phrases = new[]
-{
-    new {col0="Tonight I dine on turtle soup!", col1=(float)PossibleOptions.EatTurtle },
-    new {col0="I like turtles!", col1=(float)PossibleOptions.LikeTurtle },
-};
-
-IDataView dataView = mlContext.Data.LoadFromEnumerable(phrases);
-
-// Data process configuration with pipeline data transformations
+// Create a pipeline for training the model
 var pipeline = mlContext.Transforms.Conversion.MapValueToKey(outputColumnName: @"col1", inputColumnName: @"col1")
                         .Append(mlContext.MulticlassClassification.Trainers.TextClassification(labelColumnName: @"col1", sentence1ColumnName: @"col0"))
                         .Append(mlContext.Transforms.Conversion.MapKeyToValue(outputColumnName: @"PredictedLabel", inputColumnName: @"PredictedLabel"));
 
+// Train the model
 var mlModel = pipeline.Fit(dataView);
 
+// Generate a prediction engine
 PredictionEngine<ModelInput, ModelOutput> engine = mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(mlModel);
 
+// Generate a series of predictions based on user input
+string? input;
+do
+{
+    Console.WriteLine("What do you want to say about turtles? (Type Q to Quit)");
+    input = Console.ReadLine();
 
-ModelInput sampleData = new(@"Turtles taste good!");
-ModelOutput result = engine.Predict(sampleData);
+    // Get a prediction
+    ModelInput sampleData = new(input);
+    ModelOutput result = engine.Predict(sampleData);
 
-// Print sentiment
-Console.WriteLine($"Intent: {(PossibleOptions)result.PredictedLabel} with class labels of {string.Join(", ", result.Score.Select(s => s.ToString("0.00")))}");
+    // Print classification
+    Console.WriteLine($"Matched intent {(PossibleOptions)result.PredictedLabel}, {result.Col1}");
+    Console.WriteLine();
+}
+while (!string.IsNullOrWhiteSpace(input) && input.ToLowerInvariant() != "q");
+
+Console.WriteLine("Have fun with the turtles!");
 
 /// <summary>
 /// model input class for ReviewSentiment.
@@ -87,6 +96,13 @@ public class ModelOutput
 
 public enum PossibleOptions
 {
-    EatTurtle,
-    LikeTurtle
+    EatTurtle = 0,
+    LikeTurtle = 1,
+    Unknown = 2,
+    Ninjitsu = 3,
+    FastTurtles = 4,
+    Recursive = 5,
+    TurtleCare = 6,
+    TurtleGovernmentalPreferences = 7,
+    TurtleIntelligence = 8
 }

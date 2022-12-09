@@ -1,20 +1,18 @@
 ﻿using Microsoft.ML.Data;
-/// <summary>
-/// model input class for ReviewSentiment.
-/// </summary>
+
 public class ModelInput
 {
-    public ModelInput(string col0)
+    public ModelInput(string utterance)
     {
-        Col0 = col0;
+        Sentence = utterance;
     }
 
     [LoadColumn(0)]
-    [ColumnName(@"col0")]
-    public string Col0 { get; set; }
+    [ColumnName(@"Sentence")]
+    public string Sentence { get; set; }
 
     [LoadColumn(1)]
-    [ColumnName(@"col1")]
-    public float Col1 { get; set; }
+    [ColumnName(@"Label")]
+    public float Label { get; set; }
 
 }

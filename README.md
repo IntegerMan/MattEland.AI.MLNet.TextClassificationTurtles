@@ -7,7 +7,7 @@ See my article on [Text Classification in C# with ML.NET 2.0](https://accessible
 
 Special thanks to those who chimed in with quotes on Twitter!
 
-## Source Articles / Code
+## Referenced Articles / Code
 
 The article and code for this was heavily influenced by articles / code from the following places:
 

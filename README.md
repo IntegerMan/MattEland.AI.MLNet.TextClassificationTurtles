@@ -1,6 +1,10 @@
 # TextClassification API with ML.NET 2.0 Samples
 By [Matt Eland](https://MattEland.dev).
 
+See my article on [Text Classification in C# with ML.NET 2.0](https://accessibleai.dev/post/ml_net_2_0_text_classification/) for a full walkthrough of this code and its covered contents.
+
+Special thanks to those who chimed in with quotes on Twitter!
+
 ## Source Articles / Code
 
 The article and code for this was heavily influenced by articles / code from the following places:

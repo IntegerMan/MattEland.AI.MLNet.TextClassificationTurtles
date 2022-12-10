@@ -1,4 +1,5 @@
 ﻿using Microsoft.ML;
+using Microsoft.ML.Data;
 using Microsoft.ML.TorchSharp;
 using Microsoft.ML.TorchSharp.NasBert;
 
@@ -33,19 +34,19 @@ IDataView testData = dataSplit.TestSet;
 
 // Create a pipeline for training the model
 var pipeline = mlContext.Transforms.Conversion.MapValueToKey(
-                            outputColumnName: @"Label", 
-                            inputColumnName: @"Label")
+                            outputColumnName: "Label", 
+                            inputColumnName: "Label")
                         .Append(mlContext.MulticlassClassification.Trainers.TextClassification(
-                            labelColumnName: @"Label",
-                            sentence1ColumnName: @"Sentence",
+                            labelColumnName: "Label",
+                            sentence1ColumnName: "Sentence",
                             architecture: BertArchitecture.Roberta))
                         .Append(mlContext.Transforms.Conversion.MapKeyToValue(
-                            outputColumnName: @"PredictedLabel", 
-                            inputColumnName: @"PredictedLabel"));
+                            outputColumnName: "PredictedLabel", 
+                            inputColumnName: "PredictedLabel"));
 
 // Train the model using the pipeline
 Console.WriteLine("Training model...");
-var model = pipeline.Fit(trainData);
+ITransformer model = pipeline.Fit(trainData);
 
 /** MODEL EVALUATION **************************************************************************/
 
@@ -53,13 +54,13 @@ var model = pipeline.Fit(trainData);
 Console.WriteLine("Evaluating model performance...");
 
 // We need to apply the same transformations to our test set so it can be evaluated via the resulting model
-var transformedTest = model.Transform(testData);
-var evalResult = mlContext.MulticlassClassification.Evaluate(transformedTest);
+IDataView transformedTest = model.Transform(testData);
+MulticlassClassificationMetrics metrics = mlContext.MulticlassClassification.Evaluate(transformedTest);
 
 // Display Metrics
-Console.WriteLine($"Macro Accuracy: {evalResult.MacroAccuracy}");
-Console.WriteLine($"Micro Accuracy: {evalResult.MicroAccuracy}");
-Console.WriteLine($"Log Loss: {evalResult.LogLoss}");
+Console.WriteLine($"Macro Accuracy: {metrics.MacroAccuracy}");
+Console.WriteLine($"Micro Accuracy: {metrics.MicroAccuracy}");
+Console.WriteLine($"Log Loss: {metrics.LogLoss}");
 Console.WriteLine();
 
 // Confusion Matrix with class list
@@ -70,13 +71,14 @@ foreach (TurtleIntents value in Enum.GetValues<TurtleIntents>())
 }
 Console.WriteLine();
 
-Console.WriteLine(evalResult.ConfusionMatrix.GetFormattedConfusionTable());
+Console.WriteLine(metrics.ConfusionMatrix.GetFormattedConfusionTable());
 
 /** PREDICTION GENERATION *********************************************************************/    
 
 // Generate a prediction engine
 Console.WriteLine("Creating prediction engine...");
-var engine = mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(model);
+PredictionEngine<ModelInput, ModelOutput> engine = 
+    mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(model);
 
 Console.WriteLine("Ready to generate predictions.");
 
